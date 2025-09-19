@@ -1,8 +1,0 @@
-name: deploy-admin
-on:
-  push:
-    branches: [ admin ]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/deploy-admin.yml'
-  workflow_dispatch: {}
