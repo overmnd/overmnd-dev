@@ -1,46 +1,46 @@
-name: deploy-backend
+name: deploy-backend (overmnd-backend)
 
 on:
   push:
     branches: [ backend ]
     paths:
-      - 'backend/**'
-      - '.github/workflows/backend_overmnd-backend.yml'
+      - "backend/**"
+      - ".github/workflows/backend_overmnd-backend.yml"
   workflow_dispatch: {}
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
+    env:
+      AZURE_WEBAPP_NAME: overmnd-backend
+      AZURE_RESOURCE_GROUP: AUS-Dev
+      APP_ARTIFACT: build_output.zip
+      APP_PATH: backend
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # (Optional) quick lint/build steps could go here
-
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          python-version: "3.12"
 
-      # Zip the backend folder so App Service (Oryx) builds Python on server
-      - name: Create package
-        run: |
-          cd backend
-          zip -r ../backend.zip . -x "*.git*"
-          cd ..
+      # Build the backend with Oryx (this produces a zip with deps baked in)
+      - name: Oryx build (Python)
+        uses: azure/appservice-build@v3
+        with:
+          repo-path: ${{ env.APP_PATH }}
+          platform: python
+          platform-version: "3.12"
+          output-path: ${{ env.APP_ARTIFACT }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: "overmnd-backend"
-          slot-name: "production"
-          package: "backend.zip"
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ${{ env.APP_ARTIFACT }}
 
-      - name: Logout
-        run: az logout
+      - name: Show deployment URL
+        run: echo "https://overmnd-backend-afd9a4f8eugredh6.australiacentral-01.azurewebsites.net/"
