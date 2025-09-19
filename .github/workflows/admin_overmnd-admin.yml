@@ -9,44 +9,39 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  id-token: write     # required for OIDC login to Azure
+  id-token: write
   contents: read
 
 env:
-  AZURE_WEBAPP_NAME: overmnd-admin        # <-- your Azure Web App name for the ADMIN portal
-  NODE_VERSION: '20'
+  NEXT_PUBLIC_BACKEND_URL: "https://overmnd-backend-afd9a4f8eugredh6.australiacentral-01.azurewebsites.net"
+  NEXT_PUBLIC_ADMIN_PORTAL_URL: "https://overmnd-admin-f2e9andnd3ggeta6.australiacentral-01.azurewebsites.net"
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node ${{ env.NODE_VERSION }}
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install deps (admin)
+      - name: Install deps
         working-directory: frontend
         run: npm ci
 
-      - name: Build (admin)
+      - name: Build
         working-directory: frontend
         run: npm run build
 
-      # If you want the zipped artifact kept with the run, keep this.
-      - name: Archive build artifact (dist)
-        run: |
-          cd frontend/dist
-          zip -r ../../admin_build.zip .
+      - name: Static export
+        working-directory: frontend
+        run: npx next export -o out
 
-      # ---- Azure login via OIDC (Deployment Center already created the federated identity) ----
-      # Ensure these three repo secrets exist: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
@@ -54,20 +49,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Deploy the built files to the Web App's wwwroot.
-      # IMPORTANT (done once in the Azure portal for this app):
-      #   Configuration → General settings:
-      #     Stack = Node 20 LTS
-      #   Configuration → General settings → Startup Command:
-      #     pm2 serve /home/site/wwwroot --no-daemon --spa
-      #   Configuration → Application settings:
-      #     SCM_DO_BUILD_DURING_DEPLOYMENT = true
-      #     NPM_CONFIG_PRODUCTION = false
-      #     NEXT_PUBLIC_BACKEND_URL = https://<your-backend>.azurewebsites.net
-      #     NEXT_PUBLIC_ADMIN_PORTAL_URL = https://<this-admin-app>.azurewebsites.net
-      #
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: admin_build.zip
+          app-name: "overmnd-admin"
+          slot-name: "production"
+          package: "frontend/out"
+
+      - name: Logout
+        run: az logout
