@@ -1,31 +1,40 @@
-name: Deploy backend to Azure Web App
+name: backend_overmnd-backend
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, backend ]
     paths:
-      - "backend/**"
-      - ".github/workflows/backend_overmnd-backend.yml"
+      - 'backend/**'
+      - 'requirements.txt'
+      - '.github/workflows/backend_overmnd-backend.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: overmnd-backend
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Deploy to Azure
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Azure Web App (root package)
         uses: azure/webapps-deploy@v2
         with:
           app-name: overmnd-backend
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_OVERMND_BACKEND }}
-          package: ./backend
+          package: .
           startup-command: >
             bash -lc 'set -e;
-            cd /home/site/wwwroot;
-            python -m venv antenv || true;
-            source antenv/bin/activate;
+            cd /home/site/wwwroot/backend;
+            python -m venv /home/site/wwwroot/antenv || true;
+            . /home/site/wwwroot/antenv/bin/activate;
             python -m pip install --upgrade pip;
-            pip install -r requirements.txt;
-            exec gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app
-            --bind=0.0.0.0:${PORT:-8000}'
+            pip install -r /home/site/wwwroot/requirements.txt;
+            exec gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app --bind=0.0.0.0:${PORT:-8000}'
