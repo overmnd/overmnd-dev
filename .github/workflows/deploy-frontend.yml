@@ -1,0 +1,8 @@
+name: deploy-frontend
+on:
+  push:
+    branches: [ frontend ]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch: {}
