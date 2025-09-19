@@ -1,0 +1,64 @@
+/* Global dark + brand for Tabler, without touching your login styles */
+:root {
+  /* Brand gradient & accents */
+  --brand-start: #9333ea;
+  --brand-end:   #4f46e5;
+
+  /* Tabler “semantic” tokens */
+  --tblr-primary:           var(--brand-start);
+  --tblr-primary-rgb:       147, 51, 234;
+  --tblr-body-bg:           #0b1220;  /* page background */
+  --tblr-bg-surface:        #0f172a;  /* cards/surfaces */
+  --tblr-card-bg:           var(--tblr-bg-surface);
+  --tblr-body-color:        #ffffff;  /* make text white */
+  --tblr-muted:             #94a3b8;  /* slate-400 */
+  --tblr-border-color:      #1e293b;  /* slate-800 for borders */
+
+  /* Charts default color set (matches Tabler but fits our gradient) */
+  --chart-color-1: #7c3aed;
+  --chart-color-2: #4f46e5;
+  --chart-color-3: #22d3ee;
+  --chart-color-4: #22c55e;
+  --chart-color-5: #f59e0b;
+  --chart-color-6: #ef4444;
+}
+
+/* Body + base */
+body {
+  background: var(--tblr-body-bg) !important;
+  color: var(--tblr-body-color) !important;
+}
+
+/* Card surfaces */
+.card, .card-body, .navbar, .navbar-nav, .dropdown-menu, .modal-content {
+  background-color: var(--tblr-bg-surface) !important;
+  color: var(--tblr-body-color) !important;
+  border-color: var(--tblr-border-color) !important;
+}
+
+/* Card headers */
+.card .card-header, .navbar, .dropdown-menu {
+  border-color: var(--tblr-border-color) !important;
+}
+
+/* Muted text */
+.text-muted { color: var(--tblr-muted) !important; }
+
+/* Brand button */
+.btn-primary {
+  background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
+  border: 0;
+}
+.btn-primary:hover { filter: brightness(1.05); }
+
+/* Links */
+a { color: #c4b5fd; } /* purple-300 */
+a:hover { color: #ddd6fe; }
+
+/* ApexCharts dark fixes */
+.apexcharts-tooltip,
+.apexcharts-menu, .apexcharts-tooltip-title {
+  color: #fff !important;
+  background: #111827 !important;
+  border-color: #1f2937 !important;
+}
