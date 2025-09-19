@@ -9,51 +9,40 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  id-token: write     # OIDC to Azure
+  id-token: write
   contents: read
 
 env:
-  AZURE_WEBAPP_NAME: overmnd-frontend   # Azure Web App for the public site
-  NODE_VERSION: '20'
+  # Embed real URLs at build time
+  NEXT_PUBLIC_BACKEND_URL: "https://overmnd-backend-afd9a4f8eugredh6.australiacentral-01.azurewebsites.net"
+  NEXT_PUBLIC_ADMIN_PORTAL_URL: "https://overmnd-admin-f2e9andnd3ggeta6.australiacentral-01.azurewebsites.net"
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node ${{ env.NODE_VERSION }}
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: site/package-lock.json
 
-      # --- Build the Next.js site as static output ---
-      # Assumes package.json in /site has:
-      #   "build": "next build",
-      #   "export": "next export"
-      # If you use `output: "export"` in next.config, `npm run build` alone is enough.
       - name: Install deps
         working-directory: site
         run: npm ci
 
-      - name: Build + Export
+      - name: Build
         working-directory: site
-        run: |
-          npm run build
-          npm run export   # produces /site/out
+        run: npm run build
 
-      - name: Archive exported site
-        run: |
-          cd site/out
-          zip -r ../../frontend_site_build.zip .
+      - name: Static export
+        working-directory: site
+        run: npx next export -o out
 
-      # --- Azure login via OIDC (Deployment Center created the federated identity) ---
-      # Make sure these three repo secrets exist:
-      #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
@@ -61,9 +50,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Deploy the static files to wwwroot
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: frontend_site_build.zip
+          app-name: "overmnd-frontend"
+          slot-name: "production"
+          package: "site/out"
+
+      - name: Logout
+        run: az logout
