@@ -1,0 +1,61 @@
+name: deploy-backend
+
+on:
+  push:
+    branches: [ backend ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend_overmnd-backend.yml'
+  workflow_dispatch: {}
+
+# Allow OIDC login + read repo
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: true
+
+env:
+  AZURE_WEBAPP_NAME: overmnd-backend
+  PYTHON_VERSION: '3.11' # local build toolchain (runtime on App Service can differ)
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Optional: verify the app packages; Azure Oryx will install from requirements.txt during deploy
+      - name: Validate requirements exist
+        run: |
+          test -f backend/requirements.txt || { echo "backend/requirements.txt missing"; exit 1; }
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Deploy the backend folder as the package.
+      # Ensure the App Service has these settings in Configuration (Portal):
+      #   SCM_DO_BUILD_DURING_DEPLOYMENT=true  (lets Oryx install from requirements.txt)
+      #   Startup Command: gunicorn -w 2 -k uvicorn.workers.UvicornWorker app.main:app --bind=0.0.0.0
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: backend
+
+      - name: Log out
+        if: always()
+        run: az logout
