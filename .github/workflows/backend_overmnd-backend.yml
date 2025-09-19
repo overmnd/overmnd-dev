@@ -1,4 +1,4 @@
-name: deploy-backend
+name: backend_overmnd-backend
 
 on:
   push:
@@ -6,42 +6,43 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/backend_overmnd-backend.yml'
-  workflow_dispatch:
-
-permissions:
-  id-token: write
-  contents: read
+  workflow_dispatch: {}
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
+    env:
+      AZURE_WEBAPP_NAME: overmnd-backend
+      AZURE_RESOURCE_GROUP: overmnd
+      SOURCE_DIR: backend
+
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Login with OIDC (Deployment Center created these three repo secrets)
-      - name: Az login
+      # Build with Oryx on the runner so requirements are installed into a zip
+      - name: Oryx build (python 3.12)
+        id: oryx
+        uses: azure/appservice-build@v3
+        with:
+          platform: python
+          platform-version: '3.12'
+          source-directory: ${{ env.SOURCE_DIR }}
+
+      - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
-          client-id:        ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id:        ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id:  ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Make sure the app is configured to run an Oryx build on deploy
-      - name: Ensure App Settings for Oryx build
-        uses: azure/appservice-settings@v1
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
         with:
-          app-name: overmnd-backend
-          app-settings-json: |
-            [
-              {"name":"SCM_DO_BUILD_DURING_DEPLOYMENT","value":"true","slotSetting":false},
-              {"name":"ENABLE_ORYX_BUILD","value":"true","slotSetting":false}
-            ]
-
-      # Deploy only the backend/ folder and let the server run Oryx (pip install)
-      - name: Deploy to Azure Web App (Oryx)
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: overmnd-backend
-          package: ./backend
-          enable-oryx-build: true
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ${{ steps.oryx.outputs.packagePath }}
