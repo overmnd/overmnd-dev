@@ -1,46 +1,32 @@
-name: Build and Deploy Python Backend to Azure App Service
+name: backend → Azure
 
 on:
   push:
-    branches:
-      - main               # Trigger on pushes to the main branch
+    branches: [ main ]
     paths:
-      - 'backend/**'       # Only run if files in the backend/ directory change
-      - 'requirements.txt' # Also run if the requirements.txt (dependencies) changes
+      - 'backend/**'
+      - 'requirements.txt'
+      - '.github/workflows/backend_overmnd-backend.yml'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Check out the repository code
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Step 2: Set up Python 3.12 on the runner
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      # Step 3: Ensure requirements.txt is available in the backend source directory
-      # Copy the root requirements.txt into the backend folder so Oryx can find it
-      - name: Copy requirements.txt to backend
+      - name: Copy root requirements into backend
         run: cp requirements.txt backend/requirements.txt
 
-      # Step 4: Build the Python web app using Azure App Service (Oryx) build
-      - name: Build backend using Oryx (AppService Build)
+      - name: Build with Oryx (Python 3.12) on runner
         uses: azure/appservice-build@v3
         with:
-          platform: 'python'
+          platform: python
           platform-version: '3.12'
-          source-directory: 'backend'
-        # The above uses Oryx to detect and build the Python app in ./backend (installs deps from requirements.txt)
+          source-directory: backend
 
-      # Step 5: Deploy the built app to Azure App Service using publish profile credentials
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: YourAzureWebAppName              # replace with your Azure App Service name
+          app-name: overmnd-backend
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: 'backend'  # deploy the contents of the backend folder (built app)
+          package: backend
