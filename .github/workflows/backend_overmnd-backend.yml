@@ -1,28 +1,24 @@
-name: Deploy backend (overmnd-backend)
-
+name: backend_overmnd-backend
 on:
   push:
-    branches: [main, backend]
-  workflow_dispatch:
+    branches: [ main ]
+    paths:
+      - "backend/**"
+      - "requirements.txt"
+      - ".github/workflows/backend_overmnd-backend.yml"
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Sanity — show root contents
-        run: ls -la
+      - name: Package wwwroot
+        run: zip -r sitepackage.zip backend requirements.txt
 
-      - name: Verify secret exists
-        if: ${{ !secrets.AZUREAPPSERVICE_PUBLISH_PROFILE_BACKEND }}
-        run: |
-          echo "Missing AZUREAPPSERVICE_PUBLISH_PROFILE_BACKEND" >&2
-          exit 1
-
-      - name: Deploy to Azure Web App (Zip Deploy from repo root)
+      - name: Deploy to Azure Web App (Zip Deploy)
         uses: azure/webapps-deploy@v3
         with:
           app-name: overmnd-backend
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISH_PROFILE_BACKEND }}
-          package: .
+          publish-profile: ${{ secrets.AZURE_BACKEND_PUBLISH_PROFILE }}
+          package: sitepackage.zip
