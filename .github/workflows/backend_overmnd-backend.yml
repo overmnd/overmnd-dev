@@ -1,32 +1,28 @@
-name: backend → Azure
+name: Deploy backend (overmnd-backend)
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'requirements.txt'
-      - '.github/workflows/backend_overmnd-backend.yml'
+    branches: [main, backend]
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy root requirements into backend
-        run: cp requirements.txt backend/requirements.txt
+      - name: Sanity — show root contents
+        run: ls -la
 
-      - name: Build with Oryx (Python 3.12) on runner
-        uses: azure/appservice-build@v3
-        with:
-          platform: python
-          platform-version: '3.12'
-          source-directory: backend
+      - name: Verify secret exists
+        if: ${{ !secrets.AZUREAPPSERVICE_PUBLISH_PROFILE_BACKEND }}
+        run: |
+          echo "Missing AZUREAPPSERVICE_PUBLISH_PROFILE_BACKEND" >&2
+          exit 1
 
-      - name: Deploy to Azure Web App
+      - name: Deploy to Azure Web App (Zip Deploy from repo root)
         uses: azure/webapps-deploy@v3
         with:
           app-name: overmnd-backend
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: backend
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISH_PROFILE_BACKEND }}
+          package: .
