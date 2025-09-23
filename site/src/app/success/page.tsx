@@ -22,7 +22,7 @@ export default function SuccessPage() {
             href={process.env.NEXT_PUBLIC_ADMIN_PORTAL_URL || 'http://localhost:3000'}
             className="rounded-lg border border-white/10 px-5 py-3 font-medium text-white hover:text-white/90"
           >
-            Go to Admin Portal
+            Login
           </Link>
           <Link href="/" className="btn-gradient rounded-lg px-5 py-3 font-semibold text-white">
             Back to Home

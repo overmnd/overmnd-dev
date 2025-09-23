@@ -1,0 +1,14 @@
+How to use this fix:
+
+1) Unzip into your repo root so the new file lands at:
+   site/src/lib/auth/logout.ts
+
+2) Update any imports that referenced your old logout util to:
+   import { logoutAndRedirect } from '@/lib/auth/logout'   (if you use path aliases)
+   or
+   import { logoutAndRedirect } from '../lib/auth/logout'  (from components under site/src)
+
+3) Ensure you have NEXT_PUBLIC_SITE_URL set in your .env.local (Next.js):
+   NEXT_PUBLIC_SITE_URL=https://your-domain.com
+
+That's it. This avoids Vite's `import.meta.env` and uses Next.js' `process.env` (via src/lib/env.ts).

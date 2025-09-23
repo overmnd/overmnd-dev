@@ -6,7 +6,7 @@ import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   // Prefill to speed up testing
-  const [email, setEmail] = useState("support@overmind.bot");
+  const [email, setEmail] = useState("support@overmnd.com");
   const [password, setPassword] = useState("overmind");
   const [showPwd, setShowPwd] = useState(false);
   const [status, setStatus] = useState("");
